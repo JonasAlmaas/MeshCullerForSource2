@@ -4,7 +4,7 @@ using DMElementArray = Datamodel.ElementArray;
 
 namespace MeshCullerForSource2;
 
-public class ElementBase
+public class BaseDMElement
 {
 	public DMElement Element { get; set; } = null!;
 	[DMProperty(name: "id")]
@@ -12,7 +12,7 @@ public class ElementBase
 }
 
 public class DMParser<T>
-	where T : ElementBase, new()
+	where T : BaseDMElement, new()
 {
 	public static T ParseElement(DMElement e) {
 		var instance = new T();
