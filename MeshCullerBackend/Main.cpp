@@ -2,6 +2,7 @@
 #include <filesystem>
 
 #include <fbxsdk.h>
+#include <glm.hpp>
 
 #include "Math.hpp"
 
