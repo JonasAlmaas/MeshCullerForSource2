@@ -1,9 +1,14 @@
 ﻿using System.Numerics;
 using Datamodel.Format;
 using DMElement = Datamodel.Element;
-using DMElementArray = Datamodel.ElementArray;
 
 namespace MeshCullerForSource2;
+
+public class DMUtils
+{
+	public static bool IsCMapEntity(DMElement e) => e.ContainsKey("entity_properties");
+	public static bool IsCMapMesh(DMElement e) => e.ContainsKey("meshData");
+}
 
 public class MapNode : BaseDMElement
 {
@@ -15,9 +20,9 @@ public class MapNode : BaseDMElement
 	[DMProperty(name: "origin")]
 	public Vector3 Origin { get; set; }
 	[DMProperty(name: "angles")]
-	public Datamodel.QAngle Angles { get; set; }
+	public Vector3 Angles { get; set; }
 	[DMProperty(name: "scales")]
-	public Vector3 Scales { get; set; } = new Vector3(1, 1, 1);
+	public Vector3 Scale { get; set; } = new Vector3(1, 1, 1);
 }
 
 public class CMapMesh : MapNode
@@ -43,13 +48,13 @@ public class EditGameClassProps : BaseDMElement
 public class CMapEntity : MapNode
 {
 	[DMProperty(name: "entity_properties")]
-	public EditGameClassProps EntityProperties { get; set; } = null!;
+	public EditGameClassProps EntityProperties { get; set; } = null!;	
 }
 
 public class CObjectSelectionSetDataElement : BaseDMElement
 {
 	[DMProperty(name: "selectedObjects")]
-	public DMElementArray SelectedObjects { get; set; } = null!;
+	public DMElement[] SelectedObjects { get; set; } = null!;
 }
 
 public class CMapSelectionSet : BaseDMElement
@@ -65,7 +70,7 @@ public class CMapSelectionSet : BaseDMElement
 public class CVisibilityMgr : BaseDMElement
 {
 	[DMProperty(name: "nodes")]
-	public DMElementArray Nodes { get; set; } = null!;
+	public DMElement[] Nodes { get; set; } = null!;
 	[DMProperty(name: "hiddenFlags")]
 	public Datamodel.IntArray HiddenFlags { get; set; } = null!;
 }

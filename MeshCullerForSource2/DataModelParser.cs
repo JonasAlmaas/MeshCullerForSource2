@@ -52,13 +52,17 @@ public class DMParser<T>
 					for (var i = 0; i < elementArray.Count; i++) {
 						var arrayElement = elementArray[i];
 
-						var parseElementMethod = typeof(DMParser<>)
-							.MakeGenericType(arrayElementsType)
-							.GetMethod("ParseElement")!;
+						if (arrayElementsType.FullName == "Datamodel.Element") {
+							arrayElements.SetValue(arrayElement, i);
+						} else {
+							var parseElementMethod = typeof(DMParser<>)
+								.MakeGenericType(arrayElementsType)
+								.GetMethod("ParseElement")!;
 
-						var value = parseElementMethod.Invoke(null, [arrayElement]);
+							var value = parseElementMethod.Invoke(null, [arrayElement]);
 
-						arrayElements.SetValue(value, i);
+							arrayElements.SetValue(value, i);
+						}
 					}
 
 					prop.SetValue(instance, arrayElements);
