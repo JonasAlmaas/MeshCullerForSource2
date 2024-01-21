@@ -2,11 +2,13 @@
 
 #include <iostream>
 
+#include <glm/glm.hpp>
+
 bool rayIntersectsTriangle(const glm::vec3& origin, const glm::vec3& direction, const glm::vec3& a, const glm::vec3& b, const glm::vec3& c)
 {
 	const glm::vec3 E1 = b - a;
 	const glm::vec3 E2 = c - a;
-	const glm::vec3 N = cross(E1, E2);
+	const glm::vec3 N = glm::cross(E1, E2);
 	const float det = -glm::dot(direction, N);
 	const float invdet = 1.0f / det;
 	const glm::vec3 AO = origin - a;
