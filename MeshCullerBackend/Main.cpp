@@ -10,9 +10,9 @@ struct MeshInstance
 {
 	std::filesystem::path SrcPath;
 	std::filesystem::path DstPath;
-	Vec Origin;
-	Vec Angles;
-	Vec Scale;
+	glm::vec3 Origin;
+	glm::vec3 Angles;
+	glm::vec3 Scale;
 	double Scalar;
 };
 
