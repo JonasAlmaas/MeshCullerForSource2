@@ -1,4 +1,6 @@
 ﻿using System.Numerics;
+
+using Datamodel;
 using Datamodel.Format;
 using DMElement = Datamodel.Element;
 
@@ -20,9 +22,12 @@ public class MapNode : BaseDMElement
 	[DMProperty(name: "origin")]
 	public Vector3 Origin { get; set; }
 	[DMProperty(name: "angles")]
-	public Vector3 Angles { get; set; }
+	public QAngle Angles { get; set; }
 	[DMProperty(name: "scales")]
 	public Vector3 Scale { get; set; } = new Vector3(1, 1, 1);
+
+	[DMProperty(name: "editorOnly")]
+	public bool EditorOnly { get; set; }
 }
 
 public class CMapMesh : MapNode

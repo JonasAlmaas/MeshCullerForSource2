@@ -35,16 +35,12 @@ internal class Program
 
 		List<MeshCullerCluster> clusters = [];
 
-		var testMapPath = "D:\\SteamLibrary\\steamapps\\common\\Counter-Strike Global Offensive\\content\\csgo_addons\\warden\\maps\\prefabs\\de_warden\\a_long_t_ramp.vmap";
-		//var testMapPath = "C:\\Users\\jonas\\Downloads\\untitled_1.vmap";
-		//var testOutMapPath = "C:\\Users\\jonas\\Downloads\\untitled_2.vmap";
+		var mapPath = "D:\\SteamLibrary\\steamapps\\common\\Counter-Strike Global Offensive\\content\\csgo_addons\\warden\\maps\\prefabs\\de_warden\\a_long_t_ramp.vmap";
 
-		using var file = File.Open(testMapPath, FileMode.Open);
-		
-		var map = Datamodel.Datamodel.Load(file);
-		
-		var rootSelectionSet = DMParser<CMapSelectionSet>.ParseElement((Element)map.Root["rootSelectionSet"]);
-		var visibility = DMParser<CVisibilityMgr>.ParseElement((Element)map.Root["visbility"]);
+		var dmx = Datamodel.Datamodel.Load(mapPath);
+
+		var rootSelectionSet = DMParser<CMapSelectionSet>.ParseElement((Element)dmx.Root["rootSelectionSet"]);
+		var visibility = DMParser<CVisibilityMgr>.ParseElement((Element)dmx.Root["visbility"]);
 
 		foreach (var selectionSet in rootSelectionSet.Children) {
 			if (selectionSet.SelectionSetName.StartsWith(selectionSetPrefix)) {
@@ -52,20 +48,17 @@ internal class Program
 
 				var selectedObjects = selectionSet.SelectionSetData.SelectedObjects;
 				foreach (var obj in selectedObjects) {
-					// TODO:
-					//	Hide this entity
-					//	Mark as editor only?
-					
-					/*for (var i = 0; i < visibility.Nodes.Length; ++i) {
+					for (var i = 0; i < visibility.Nodes.Length; ++i) {
 						if (visibility.Nodes[i] == obj) {
 							visibility.HiddenFlags[i] |= 1;
 							break;
 						}
-					}*/
-					
+					}
+
 					if (DMUtils.IsCMapEntity(obj)) {
 						var entity = DMParser<CMapEntity>.ParseElement(obj);
-						
+						entity.Element["editorOnly"] = true;
+
 						if (entity.EntityProperties.ClassName != "prop_static") {
 							Console.WriteLine($"{consolePrefix} Entity class \"{entity.EntityProperties.ClassName}\" is not supported. Only prop_static's are currently supported!");
 						} else {
@@ -76,8 +69,10 @@ internal class Program
 								Scale = entity.Scale
 							});
 						}
-					} else if (DMUtils.IsCMapMesh(obj)) {
+					}
+					else if (DMUtils.IsCMapMesh(obj)) {
 						var mesh = DMParser<CMapMesh>.ParseElement(obj);
+						mesh.Element["editorOnly"] = true;
 						// TODO
 					}
 				}
@@ -93,7 +88,19 @@ internal class Program
 		 * Make sure the older meshes are hidden. Maybe marked as editor only?
 		 */
 
-		//map.Save(file, "keyvalues2", 4); // This currently doesn't work with cs2 ...
+		using (var memoryStream = new MemoryStream()) {
+			dmx.Save(memoryStream, "keyvalues2", 4);
+			dmx.Dispose();
+
+			var bytes = memoryStream.ToArray();
+			memoryStream.Read(bytes, 0, (int)memoryStream.Length);
+
+			using (var file = new FileStream(mapPath, FileMode.Open, FileAccess.Write)) {
+				file.Write(bytes, 0, bytes.Length);
+			}
+		}
+
+		Thread.Sleep(100);
 
 		Console.WriteLine($"{consolePrefix} Reloading Hammer ...");
 		if (hammerReloadFile()) {
