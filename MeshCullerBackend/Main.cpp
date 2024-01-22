@@ -2,7 +2,9 @@
 #include <filesystem>
 
 #include <fbxsdk.h>
-#include <glm.hpp>
+#include <glm/glm.hpp>
+#include <glm/gtx/transform.hpp>
+#include <glm/gtx/euler_angles.hpp>
 
 #include "Math.hpp"
 
@@ -35,7 +37,7 @@ int main()
 	};
 
 	std::vector<const char*> names = {
-		"Gerry", "Gregg", "Finn", "Pondus", "Connor",
+		"Numba Wan", "Gregg", "Finn", "Pondus", "Connor",
 		"Berry", "Dumbledor", "Harry", "Gudrunn", "Per Ivar"
 	};
 
@@ -59,55 +61,43 @@ int main()
 		importer->Import(scene);
 		importer->Destroy();
 
-		// TODO: Apply transforms? Relative to export origin?
-		FbxNode* rootNode = scene->GetRootNode();
-		if (rootNode) {
-			FbxNode* mesh = rootNode->GetChild(0);
+		FbxNode* root = scene->GetRootNode();
+		if (!root) continue;
 
-			std::cout << mesh->LclTranslation.Get()[0] << " " << mesh->LclTranslation.Get()[1] << " " << mesh->LclTranslation.Get()[2] << "\n";
-			std::cout << mesh->LclRotation.Get()[0] << " " << mesh->LclRotation.Get()[1] << " " << mesh->LclRotation.Get()[2] << "\n";
-			std::cout << mesh->LclScaling.Get()[0] << " " << mesh->LclScaling.Get()[1] << " " << mesh->LclScaling.Get()[2] << "\n";
-			std::cout << "\n";
+		FbxNode* mesh = root->GetChild(0);
+		mesh->SetName(names[i]);
 
-			for (size_t j = 0; j < mesh->GetMesh()->GetControlPointsCount(); ++j) {
-				FbxVector4 controlPoint = mesh->GetMesh()->GetControlPointAt(j);
+		std::cout << mesh->GetName() << "\n";
+		std::cout << mesh->LclTranslation.Get()[0] << " " << mesh->LclTranslation.Get()[1] << " " << mesh->LclTranslation.Get()[2] << "\n";
+		std::cout << mesh->LclRotation.Get()[0] << " " << mesh->LclRotation.Get()[1] << " " << mesh->LclRotation.Get()[2] << "\n";
+		std::cout << mesh->LclScaling.Get()[0] << " " << mesh->LclScaling.Get()[1] << " " << mesh->LclScaling.Get()[2] << "\n";
+		std::cout << "\n";
 
-				controlPoint.Set(
-					controlPoint[0] * mesh->LclScaling.Get()[0],
-					controlPoint[1] * mesh->LclScaling.Get()[1],
-					controlPoint[2] * mesh->LclScaling.Get()[2]);
+		glm::mat4 tra = glm::translate(glm::vec3(mesh->LclTranslation.Get()[0], mesh->LclTranslation.Get()[1], mesh->LclTranslation.Get()[2]));
+		glm::mat4 rot = glm::eulerAngleXYZ(glm::radians(mesh->LclRotation.Get()[0]), glm::radians(mesh->LclRotation.Get()[1]), glm::radians(mesh->LclRotation.Get()[2]));
+		glm::mat4 sca = glm::scale(glm::vec3(mesh->LclScaling.Get()[0], mesh->LclScaling.Get()[1], mesh->LclScaling.Get()[2]));
+		glm::mat4 mat = rot * tra * sca;
 
-				//controlPoint.Set(
-				//	controlPoint[0] * mesh->LclRotation.Get()[0],
-				//	controlPoint[1] * mesh->LclRotation.Get()[1],
-				//	controlPoint[2] * mesh->LclRotation.Get()[2]);
-
-				controlPoint.Set(
-					controlPoint[0] - mesh->LclTranslation.Get()[0],
-					controlPoint[1] - mesh->LclTranslation.Get()[1],
-					controlPoint[2] - mesh->LclTranslation.Get()[2]);
-
-				mesh->GetMesh()->SetControlPointAt(controlPoint, j);
-			}
-
-			//FbxVector4* controlPoints = mesh->GetMesh()->GetControlPointsCount();
-			//controlPoints->Set()
-
-			//Vec translation = instance.Origin;
-			//mesh->LclTranslation.Set({ translation.X, translation.Y, translation.Z });
-			mesh->LclTranslation.Set({ 0.0, 0.0, 0.0 });
-			
-			//Vec rotation = instance.Angles;
-			//Vec rotation = radians(instance.Angles);
-			//mesh->LclRotation.Set({ rotation.X, rotation.Y, rotation.Z });
-			mesh->LclRotation.Set({ 0.0, 0.0, 0.0 });
-			
-			//Vec scaling = instance.Scale * instance.Scalar;
-			//mesh->LclScaling.Set({ scaling.X, scaling.Y, scaling.Z });
-			mesh->LclScaling.Set({ 1.0, 1.0, 1.0 });
-
-			//mesh->Destroy();
+		for (int j = 0; j < mesh->GetMesh()->GetControlPointsCount(); ++j) {
+			FbxVector4 controlPoint = mesh->GetMesh()->GetControlPointAt(j);
+			glm::vec4 v = mat * glm::vec4(controlPoint[0], controlPoint[1], controlPoint[2], 1.0);
+			controlPoint.Set(v.x, v.y, v.z, 1.0);
+			mesh->GetMesh()->SetControlPointAt(controlPoint, j);
 		}
+
+		FbxGeometryElementNormal* normalElement = mesh->GetMesh()->GetElementNormal();
+		FbxLayerElementArrayTemplate<FbxVector4>& normalArray = normalElement->GetDirectArray();
+
+		for (int j = 0; j < normalArray.GetCount(); ++j) {
+			FbxVector4 normal = normalArray.GetAt(j);
+			glm::vec4 n = glm::normalize(mat * glm::vec4(normal[0], normal[1], normal[2], 0.0));
+			normal.Set(n.x, n.y, n.z, 0.0);
+			normalArray.SetAt(j, normal);
+		}
+
+		mesh->LclTranslation.Set({ 0.0, 0.0, 0.0 });
+		mesh->LclRotation.Set({ 0.0, 0.0, 0.0 });
+		mesh->LclScaling.Set({ 1.0, 1.0, 1.0 });
 	}
 
 	for (size_t i = 0; i < scenes.size(); ++i) {
