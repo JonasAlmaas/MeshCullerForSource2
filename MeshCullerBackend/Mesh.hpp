@@ -14,9 +14,9 @@ public:
 	glm::vec3 E1, E2;
 	glm::vec3 Normal;
 
-	bool Cull = false;
-	bool Inside = false;
 	bool Intersect = false;
+	bool Inside = false;
+	bool Cull = false;
 
 	Triangle(glm::vec3& a, glm::vec3& b, glm::vec3& c)
 	{
@@ -48,33 +48,33 @@ public:
 
 	void UpdateAndReset()
 	{
-		if (Inside && !Intersect) Cull = true;
-		Inside = false;
+		if (!Intersect && Inside) Cull = true;
 		Intersect = false;
+		Inside = false;
 	}
 };
 
-void RayCastTriangles(Triangle& source, Triangle& target, const glm::vec3& origin, const glm::vec3& direction)
+bool RayCastTriangles(Triangle& source, Triangle& target, const glm::vec3& origin, const glm::vec3& direction)
 {
 	float distance;
 
-	if (target.RayIntersect(origin, direction, distance)) {
-		source.Inside = !source.Inside;
-
-		if (distance <= glm::length(direction)) {
-			source.Intersect = true;
-			target.Intersect = true;
-		}
+	if (!target.RayIntersect(origin, direction, distance)) return false;
+	
+	if (distance <= glm::length(direction)) {
+		source.Intersect = true;
+		target.Intersect = true;
 	}
+
+	return true;
 }
 
 void CompareTriangles(Triangle& t1, Triangle& t2)
 {
-	RayCastTriangles(t1, t2, t1.A, t1.B - t1.A);
+	if (RayCastTriangles(t1, t2, t1.A, t1.B - t1.A)) t1.Inside = !t1.Inside;
 	RayCastTriangles(t1, t2, t1.B, t1.C - t1.B);
 	RayCastTriangles(t1, t2, t1.C, t1.A - t1.C);
 
-	RayCastTriangles(t2, t1, t2.A, t2.B - t2.A);
+	if (RayCastTriangles(t2, t1, t2.A, t2.B - t2.A)) t2.Inside = !t2.Inside;
 	RayCastTriangles(t2, t1, t2.B, t2.C - t2.B);
 	RayCastTriangles(t2, t1, t2.C, t2.A - t2.C);
 }
