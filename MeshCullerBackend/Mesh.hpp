@@ -9,13 +9,14 @@
 
 class Triangle
 {
-private:
+public:
 	glm::vec3 A, B, C;
 	glm::vec3 E1, E2;
 	glm::vec3 Normal;
 
-public:
 	bool Cull = false;
+	bool Inside = false;
+	bool Intersect = false;
 
 	Triangle(glm::vec3& a, glm::vec3& b, glm::vec3& c)
 	{
@@ -24,17 +25,15 @@ public:
 		Normal = glm::cross(E1, E2);
 	}
 
-	bool RayIntersect(glm::vec3 origin, glm::vec3 direction)
+	bool RayIntersect(const glm::vec3& origin, const glm::vec3& direction, float& distance)
 	{
 		const float det = -glm::dot(direction, Normal);
-		if (det > -1e-6f) return false;
-
 		const float invdet = 1.0f / det;
 
 		const glm::vec3 AO = origin - A;
 
-		const float t = glm::dot(AO, Normal) * invdet;
-		if (t < 0.0f) return false;
+		distance = glm::dot(AO, Normal) * invdet;
+		if (distance < 0.0f) return false;
 
 		const glm::vec3 DAO = glm::cross(AO, direction);
 
@@ -47,23 +46,38 @@ public:
 		return (u + v) <= 1.0f;
 	}
 
-	bool InsideTriangle(Triangle other)
+	void UpdateAndReset()
 	{
-		glm::vec3 direction = { 1.0, 0.0, 0.0 };
-
-		if (other.RayIntersect(A, direction)) return false;
-		if (other.RayIntersect(B, direction)) return false;
-		if (other.RayIntersect(C, direction)) return false;
-
-		if (other.RayIntersect((A + B) * glm::vec3(0.5), direction)) return false;
-		if (other.RayIntersect((B + C) * glm::vec3(0.5), direction)) return false;
-		if (other.RayIntersect((C + A) * glm::vec3(0.5), direction)) return false;
-
-		// TODO: Sample more rays.
-
-		return true;
+		if (Inside && !Intersect) Cull = true;
+		Inside = false;
+		Intersect = false;
 	}
 };
+
+void RayCastTriangles(Triangle& source, Triangle& target, const glm::vec3& origin, const glm::vec3& direction)
+{
+	float distance;
+
+	if (target.RayIntersect(origin, direction, distance)) {
+		source.Inside = !source.Inside;
+
+		if (distance <= glm::length(direction)) {
+			source.Intersect = true;
+			target.Intersect = true;
+		}
+	}
+}
+
+void CompareTriangles(Triangle& t1, Triangle& t2)
+{
+	RayCastTriangles(t1, t2, t1.A, t1.B - t1.A);
+	RayCastTriangles(t1, t2, t1.B, t1.C - t1.B);
+	RayCastTriangles(t1, t2, t1.C, t1.A - t1.C);
+
+	RayCastTriangles(t2, t1, t2.A, t2.B - t2.A);
+	RayCastTriangles(t2, t1, t2.B, t2.C - t2.B);
+	RayCastTriangles(t2, t1, t2.C, t2.A - t2.C);
+}
 
 class Mesh
 {
