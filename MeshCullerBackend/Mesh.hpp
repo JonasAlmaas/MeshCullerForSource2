@@ -9,15 +9,16 @@
 
 class Triangle
 {
-public:
+private:
 	glm::vec3 A, B, C;
 	glm::vec3 E1, E2;
 	glm::vec3 Normal;
 
-	bool Intersect = false;
+	bool Overlap = false;
 	bool Inside = false;
 	bool Cull = false;
 
+public:
 	Triangle(glm::vec3& a, glm::vec3& b, glm::vec3& c)
 	{
 		A = a; B = b; C = c;
@@ -25,59 +26,55 @@ public:
 		Normal = glm::cross(E1, E2);
 	}
 
-	bool RayIntersect(const glm::vec3& origin, const glm::vec3& direction, float& distance)
+	void Intersect(Triangle& target)
 	{
-		const float det = -glm::dot(direction, Normal);
-		const float invdet = 1.0f / det;
+		glm::vec3 origin, direction;
+		glm::vec3 origins[] = { A, B, C };
+		glm::vec3 directions[] = { B - A, C - B, A - C }; // TODO: Pre-compute these.
 
-		const glm::vec3 AO = origin - A;
+		for (int i = 0; i < 3; ++i) {
+			origin = origins[i];
+			direction = directions[i];
 
-		distance = glm::dot(AO, Normal) * invdet;
-		if (distance < 0.0f) return false;
+			const float det = -glm::dot(direction, target.Normal);
+			const float invdet = 1.0f / det;
 
-		const glm::vec3 DAO = glm::cross(AO, direction);
+			const glm::vec3 ao = origin - target.A;
 
-		const float u = glm::dot(E2, DAO) * invdet;
-		if (u < 0.0f) return false;
+			const float t = glm::dot(ao, target.Normal) * invdet;
+			if (t < 0.0f) continue;
 
-		const float v = -glm::dot(E1, DAO) * invdet;
-		if (v < 0.0f) return false;
-		
-		return (u + v) <= 1.0f;
+			const glm::vec3 dao = glm::cross(ao, direction);
+
+			const float u = glm::dot(target.E2, dao) * invdet;
+			if (u < 0.0f) continue;
+
+			const float v = -glm::dot(target.E1, dao) * invdet;
+			if (v < 0.0f) continue;
+
+			if (u + v > 1.0f) continue;
+			
+			if (t <= glm::length(direction)) {
+				Overlap = true;
+				target.Overlap = true;
+			}
+
+			if (i == 0) Inside = !Inside;
+		}
 	}
 
 	void UpdateAndReset()
 	{
-		if (!Intersect && Inside) Cull = true;
-		Intersect = false;
+		if (!Overlap && Inside) Cull = true;
+		Overlap = false;
 		Inside = false;
 	}
-};
 
-bool RayCastTriangles(Triangle& source, Triangle& target, const glm::vec3& origin, const glm::vec3& direction)
-{
-	float distance;
-
-	if (!target.RayIntersect(origin, direction, distance)) return false;
-	
-	if (distance <= glm::length(direction)) {
-		source.Intersect = true;
-		target.Intersect = true;
+	bool ShouldCull()
+	{
+		return Cull;
 	}
-
-	return true;
-}
-
-void CompareTriangles(Triangle& t1, Triangle& t2)
-{
-	if (RayCastTriangles(t1, t2, t1.A, t1.B - t1.A)) t1.Inside = !t1.Inside;
-	RayCastTriangles(t1, t2, t1.B, t1.C - t1.B);
-	RayCastTriangles(t1, t2, t1.C, t1.A - t1.C);
-
-	if (RayCastTriangles(t2, t1, t2.A, t2.B - t2.A)) t2.Inside = !t2.Inside;
-	RayCastTriangles(t2, t1, t2.B, t2.C - t2.B);
-	RayCastTriangles(t2, t1, t2.C, t2.A - t2.C);
-}
+};
 
 class Mesh
 {
