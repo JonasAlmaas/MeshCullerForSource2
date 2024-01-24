@@ -1,6 +1,6 @@
 #include "Triangle.hpp"
 
-bool Triangle::rayIntersect(const glm::vec3& origin, const glm::vec3& direction, float length, bool& overlap) const
+bool Triangle::RayIntersect(const glm::vec3& origin, const glm::vec3& direction, float length, bool& overlap) const
 {
 	const float det = -glm::dot(direction, Normal);
 	const float invdet = 1.0f / det;
@@ -20,17 +20,17 @@ bool Triangle::rayIntersect(const glm::vec3& origin, const glm::vec3& direction,
 	return true;
 }
 
-void Triangle::triangleIntersect(Triangle& T1, Triangle& T2)
+void TriangleIntersect(Triangle& T1, Triangle& T2)
 {
 	bool overlap = false;
 
-	if (T2.rayIntersect(T1.P1, T1.E1, T1.L1, overlap)) T1.Inside = !T1.Inside;
-	T2.rayIntersect(T1.P2, T1.E2, T1.L2, overlap);
-	T2.rayIntersect(T1.P3, T1.E3, T1.L3, overlap);
+	if (T2.RayIntersect(T1.P1, T1.E1, T1.L1, overlap)) T1.Inside = !T1.Inside;
+	T2.RayIntersect(T1.P2, T1.E2, T1.L2, overlap);
+	T2.RayIntersect(T1.P3, T1.E3, T1.L3, overlap);
 
-	if (T1.rayIntersect(T2.P1, T2.E1, T2.L1, overlap)) T2.Inside = !T2.Inside;
-	T1.rayIntersect(T2.P2, T2.E2, T2.L2, overlap);
-	T1.rayIntersect(T2.P3, T2.E3, T2.L3, overlap);
+	if (T1.RayIntersect(T2.P1, T2.E1, T2.L1, overlap)) T2.Inside = !T2.Inside;
+	T1.RayIntersect(T2.P2, T2.E2, T2.L2, overlap);
+	T1.RayIntersect(T2.P3, T2.E3, T2.L3, overlap);
 
 	if (overlap) {
 		T1.Overlap = true;
