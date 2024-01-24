@@ -11,7 +11,7 @@ class Triangle
 {
 private:
 	glm::vec3 A, B, C;
-	glm::vec3 E1, E2;
+	glm::vec3 AB, BC, CA;
 	glm::vec3 Normal;
 
 	bool Overlap = false;
@@ -19,47 +19,46 @@ private:
 	bool Cull = false;
 
 public:
-	Triangle(glm::vec3& a, glm::vec3& b, glm::vec3& c)
+	Triangle(const glm::vec3& a, const glm::vec3& b, const glm::vec3& c)
+		: A(a), B(b), C(c), AB(B - A), BC(C - B), CA(A - C), Normal(glm::cross(AB, CA)) { }
+
+private:
+	bool RayIntersect(const glm::vec3& origin, const glm::vec3& direction, bool& overlap) const
 	{
-		A = a; B = b; C = c;
-		E1 = B - A; E2 = C - A;
-		Normal = glm::cross(E1, E2);
+		const float det = -glm::dot(direction, Normal);
+		const float invdet = 1.0f / det;
+
+		const glm::vec3 ao = origin - A;
+		const float t = glm::dot(ao, Normal) * invdet;
+		if (t < 0.0f) return false;
+		const glm::vec3 dao = glm::cross(ao, direction);
+
+		const float u = glm::dot(CA, dao) * invdet;
+		if (u < 0.0f) return false;
+		const float v = glm::dot(AB, dao) * invdet;
+		if (v < 0.0f) return false;
+		if (u + v > 1.0f) return false;
+
+		if (t <= glm::length(direction)) overlap = true;
+		return true;
 	}
 
-	void Intersect(Triangle& target)
+public:
+	friend void TriangleIntersect(Triangle& T1, Triangle& T2)
 	{
-		glm::vec3 origin, direction;
-		glm::vec3 origins[] = { A, B, C };
-		glm::vec3 directions[] = { B - A, C - B, A - C }; // TODO: Pre-compute these.
+		bool overlap = false;
 
-		for (int i = 0; i < 3; ++i) {
-			origin = origins[i];
-			direction = directions[i];
+		if (T2.RayIntersect(T1.A, T1.AB, overlap)) T1.Inside = !T1.Inside;
+		T2.RayIntersect(T1.B, T1.BC, overlap);
+		T2.RayIntersect(T1.C, T1.CA, overlap);
 
-			const float det = -glm::dot(direction, target.Normal);
-			const float invdet = 1.0f / det;
+		if (T1.RayIntersect(T2.A, T2.AB, overlap)) T2.Inside = !T2.Inside;
+		T1.RayIntersect(T2.B, T2.BC, overlap);
+		T1.RayIntersect(T2.C, T2.CA, overlap);
 
-			const glm::vec3 ao = origin - target.A;
-
-			const float t = glm::dot(ao, target.Normal) * invdet;
-			if (t < 0.0f) continue;
-
-			const glm::vec3 dao = glm::cross(ao, direction);
-
-			const float u = glm::dot(target.E2, dao) * invdet;
-			if (u < 0.0f) continue;
-
-			const float v = -glm::dot(target.E1, dao) * invdet;
-			if (v < 0.0f) continue;
-
-			if (u + v > 1.0f) continue;
-			
-			if (t <= glm::length(direction)) {
-				Overlap = true;
-				target.Overlap = true;
-			}
-
-			if (i == 0) Inside = !Inside;
+		if (overlap) {
+			T1.Overlap = true;
+			T2.Overlap = true;
 		}
 	}
 
@@ -70,7 +69,7 @@ public:
 		Inside = false;
 	}
 
-	bool ShouldCull()
+	bool ShouldCull() const
 	{
 		return Cull;
 	}
