@@ -5,20 +5,23 @@
 class Triangle
 {
 private:
-	glm::vec3 A, B, C;
-	glm::vec3 AB, BC, CA;
+	glm::vec3 P1, P2, P3;
+	glm::vec3 E1, E2, E3;
+	float L1, L2, L3;
 	glm::vec3 Normal;
 
 	bool Overlap = false;
 	bool Inside = false;
 	bool Cull = false;
 
-	bool RayIntersect(const glm::vec3& origin, const glm::vec3& direction, bool& overlap) const;
+	bool RayIntersect(const glm::vec3& origin, const glm::vec3& direction, float length, bool& overlap) const;
 	friend void TriangleIntersect(Triangle& T1, Triangle& T2);
 
 public:
 	inline Triangle(const glm::vec3& a, const glm::vec3& b, const glm::vec3& c)
-		: A(a), B(b), C(c), AB(B - A), BC(C - B), CA(A - C), Normal(glm::cross(AB, CA)) { }
+		: P1(a), P2(b), P3(c), E1(P2 - P1), E2(P3 - P2), E3(P1 - P3),
+		L1(glm::length(E1)), L2(glm::length(E2)), L3(glm::length(E3)),
+		Normal(glm::cross(E1, E3)) { }
 
 	inline void UpdateAndReset()
 	{
